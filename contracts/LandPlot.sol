@@ -1,151 +1,244 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./_external/openzeppelin-upgradable/token/ERC721/ERC721Upgradeable.sol";
-import "./_external/openzeppelin-upgradable/access/OwnableUpgradeable.sol";
-import "./_external/openzeppelin-upgradable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 
-// @title Upgradable Minecraft LandPlot NFT
-// @author elee
-contract LandPlot is ERC721Upgradeable, OwnableUpgradeable {
+import "./interfaces/ILandPlot.sol";
 
-  // mapping from token id to enabled state
-  mapping(uint256 => bool) private enabled;
-  // mapping from tokenid to x chunk coordinate;
-  mapping(uint256 => int128) public chunk_x;
-  // mapping from tokenid to z chunk coordinate;
-  mapping(uint256 => int128) public chunk_z;
-  // mapping from x to y to bool to see if it is owned already;
-  mapping(int128=> mapping(int128 => uint256)) public _owned;
+/// @title Upgradable Minecraft LandPlot NFT
+/// @author icpigci
+contract LandPlot is ILandPlot, ERC721Upgradeable, OwnableUpgradeable {
+    /*** Storage Properties ***/
 
+    mapping(uint256 => int128) public chunk_x; // mapping from tokenId to x chunk coordinate;
+    mapping(uint256 => int128) public chunk_z; // mapping from tokenId to z chunk coordinate;
+    mapping(int128 => mapping(int128 => uint256)) public override tokenIdOf; // mapping from x to z to tokenId
 
-  // prices for plots based on distance - curve is calculated off chain
-  uint256[] public _plotPrices;
-  uint256[] public _plotPriceDistances;
+    bool public override claimable;
+    uint256 public override totalSupply;
+    uint128 public override worldSize; // the max chunk coordinate of any claimable chunk, e.g. if the size is 10, the user can mint nfts from -9,-9 to 9,9
 
-  // This is the amount of chunks currently claimed
-  uint256 public _worldSize;
+    // prices for plots based on distance - curve is calculated off chain
+    uint256[] public plotPrices;
+    uint256[] public plotPriceDistances;
 
-  // This is the max chunk coordinate of any claimable chunk
-  // e.g. if the limit is 10, the user can mint nfts from -9,-9 to 9,9
-  uint128 public _worldLimit;
+    /*** Contract Logic Starts Here */
 
-  bool public _claimAvailable;
+    function initialize(string memory _name, string memory _symbol)
+        public
+        initializer
+    {
+        __ERC721_init(_name, _symbol);
+        __Ownable_init();
 
-  function initialize(string memory name, string memory symbol) public initializer{
-    ERC721Upgradeable.__ERC721_init(name, symbol);
-    OwnableUpgradeable.__Ownable_init();
-    ERC721Upgradeable._safeMint(msg.sender,0); // mint the 0 id NFT to the contract
-
-    _worldSize = 1; // NFT id=0 is a reference to an unbought chunk
-    _worldLimit = 2000; //the world is 4000x4000 chunks, or 64000x64000 blocks
-    _claimAvailable = false; // purchases are not initially available
-  }
-
-  // @notice claim chunks
-  // @dev you must send enough wei to pay for all chunks
-  // @dev the length of xs and zs must match
-  // @param xs array of x chunk coordinates to match with zs
-  // @param zs array of z chunk coordinates to match with xs
-  function claimLands(int128[] memory xs, int128[] memory zs) external payable {
-    require(_claimAvailable, "claiming is currently disabled");
-    require(xs.length <= 128, "cannot claim more than 128 chunks at a time!");
-    require(xs.length == zs.length, "xs and zs array lengths must match!");
-    uint256 total_cost = 0;
-    for(uint256 i = 0; i < xs.length; i++){
-        require(_owned[xs[i]][zs[i]] == 0, "attempting to claim already claimed land");
-        genesisMint(msg.sender,xs[i],zs[i]);
-        total_cost = total_cost + calculateLandCost(xs[i],zs[i]);
+        claimable = false; // purchases are not initially available
+        worldSize = 2000; //the world is 4000x4000 chunks, or 64000x64000 blocks
     }
-    require(msg.value >= total_cost, "not enough eth sent to purchase land");
-    uint256 change = 0;
-    if(msg.value > total_cost){
-      change = msg.value - total_cost;
-      payable(msg.sender).transfer(change);
+
+    // Admin Functions
+
+    /// @notice the contract owner can set claimable status
+    /// @param _claimable Boolean flag on whether or not people can claim land
+    function setClaimable(bool _claimable) external override onlyOwner {
+        claimable = _claimable;
     }
-  }
 
-  // @param prices An array of prices in wei which correspond to a matching distance, eg [10000000000000,1000000,10000,100,...]
-  // @param distances An array of distances in chunks which correspond to a matching price, eg [10,100,700,800,...]
-  function admin_set_plot_costs(uint256[] memory prices, uint256[] memory distances) external onlyOwner {
-    require(prices.length == distances.length);
-    _plotPrices = prices;
-    _plotPriceDistances = distances;
-  }
+    /// @notice the contract owner can set plot prices
+    /// @param _prices An array of prices in wei which correspond to a matching distance, eg [10000000000000,1000000,10000,100,...]
+    /// @param _distances An array of distances in chunks which correspond to a matching price, eg [10,100,700,800,...]
+    function setPlotPrices(
+        uint256[] memory _prices,
+        uint256[] memory _distances
+    ) external override onlyOwner {
+        require(_prices.length == _distances.length, "length doesn't match");
 
-  // @param world_limit as an uint128
-  function admin_set_world_limit(uint128 world_limit) external onlyOwner {
-    require(world_limit > 0, "World limit must be > 0");
-    _worldLimit = world_limit;
-  }
-
-  // @param available Boolean flag on whether or not people can claim land
-  function admin_set_claim_status(bool available) external onlyOwner{
-    _claimAvailable = available;
-  }
-
-  // @notice the contract owner may mint any nft for anybody
-  // @param recv address which will receive the nft
-  // @param xs array of x chunk coordinate that the nfts will correspond to
-  // @param zs array of z chunk coordinate that the nfts will correspond to
-  function mintMany(address recv, int128[] memory xs, int128[] memory zs) external onlyOwner {
-    require(xs.length == zs.length, "xs and ys coordinate count must match");
-    for(uint256 i = 0; i < xs.length; i++){
-        require(_owned[xs[i]][zs[i]] == 0, "plot already minted");
-        mintOne(recv,xs[i],zs[i]);
+        plotPrices = _prices;
+        plotPriceDistances = _distances;
     }
-  }
 
-  // @notice the contract owner may mint any nft for anybody
-  // @param recv address which will receive the nft
-  // @param x x chunk coordinate that the nft will correspond to
-  // @param z z chunk coordinate that the nft will correspond to
-  function mintOne(address recv, int128 x, int128 z) public onlyOwner {
-    genesisMint(recv,x,z);
-  }
+    /// @notice the contract owner can set world size
+    /// @param _worldSize as an uint128
+    function setWorldSize(uint128 _worldSize) external override onlyOwner {
+        require(_worldSize > 0, "World limit must be > 0");
 
-  // @notice get the chunk coordinates of which nft with id tokenId has jusrisdiction over
-  // @param tokenId id of the nft
-  // @returns (int128,int128) corresponding to the chunk with chunk coordinates (x,z);
-  function getClaimInfo(uint256 tokenId) public view returns (int128,int128){
-    return (chunk_x[tokenId],chunk_z[tokenId]);
-  }
-
-  //@notice get the claim that has jusrisdiction over chunk x,z
-  //@param x x chunk coordinate
-  //@param z z chunk coordinate
-  //@returns uint256 id of nft. if nft id == 0, then the land is unclaimed;
-  function getChunkClaim(int128 x, int128 z) public view returns (uint256){
-    return _owned[x][z];
-  }
-
-  // @param x x chunk coordinate of the plot
-  // @param z z chunk coordinate of the plot
-  // @return price in wei as uin256
-  function calculateLandCost(int128 x, int128 z) public view returns (uint256 price){
-    uint128 xA = uint128(x >= 0 ? x : -x);
-    uint128 zA = uint128(z >= 0 ? z : -z);
-    uint128 min = (xA < zA ? xA : zA);
-    price = 0;
-    for(uint256 i = 0; i < _plotPrices.length; i++){
-      if(min > _plotPriceDistances[i]){
-        price = _plotPrices[i];
-      }
+        worldSize = _worldSize;
     }
-  }
 
-  // @dev this is the function that actually mints the nft
-  // @param recv address which will receive the nft
-  // @param x x chunk coordinate that the nft will correspond to
-  // @param z z chunk coordinate that the nft will correspond to
-  function genesisMint(address recv, int128 x, int128 z) private {
-    uint128 xA = uint128(x >= 0 ? x : -x);
-    uint128 zA = uint128(z >= 0 ? z : -z);
-    require((_worldLimit > xA) && (_worldLimit > zA),"the claim is beyond the specified world limit");
-    _worldSize = _worldSize + 1;
-    ERC721Upgradeable._safeMint(recv, _worldSize);
-    chunk_x[_worldSize] = x;
-    chunk_z[_worldSize] = z;
-    _owned[x][z] = _worldSize;
-  }
+    /// @notice the contract owner may mint any nft for anybody
+    /// @param _recv address which will receive the nft
+    /// @param _xs array of x chunk coordinate that the nfts will correspond to
+    /// @param _zs array of z chunk coordinate that the nfts will correspond to
+    function mintMany(
+        address _recv,
+        int128[] memory _xs,
+        int128[] memory _zs
+    ) external override onlyOwner {
+        require(
+            _xs.length == _zs.length,
+            "xs and ys coordinate count must match"
+        );
+
+        _claimLands(_recv, _xs, _zs);
+    }
+
+    /// @notice the contract owner may mint any nft for anybody
+    /// @param _recv address which will receive the nft
+    /// @param _x x chunk coordinate that the nft will correspond to
+    /// @param _z z chunk coordinate that the nft will correspond to
+    function mintOne(
+        address _recv,
+        int128 _x,
+        int128 _z
+    ) external override onlyOwner {
+        _genesisMint(_recv, _x, _z);
+    }
+
+    // User Functions
+
+    /// @notice claim chunks
+    /// @param _xs array of x chunk coordinates to match with zs
+    /// @param _zs array of z chunk coordinates to match with xs
+    function claimLands(int128[] memory _xs, int128[] memory _zs)
+        external
+        payable
+        override
+    {
+        require(claimable, "claiming is currently disabled");
+        require(
+            _xs.length <= 128,
+            "cannot claim more than 128 chunks at a time!"
+        );
+        require(
+            _xs.length == _zs.length,
+            "xs and zs array lengths must match!"
+        );
+
+        // calculate total cost
+
+        uint256 total_cost = 0;
+        for (uint256 i = 0; i < _xs.length; i++) {
+            total_cost = total_cost + _calculateLandCost(_xs[i], _zs[i]);
+        }
+        require(
+            msg.value >= total_cost,
+            "not enough eth sent to purchase land"
+        );
+
+        if (msg.value > total_cost) {
+            // transfer remaining eth back
+
+            uint256 remaining = msg.value - total_cost;
+            payable(msg.sender).transfer(remaining);
+        }
+
+        _claimLands(msg.sender, _xs, _zs);
+    }
+
+    /// @notice transfer multiple tokens at once
+    /// @param _recv address which will receive the nft
+    /// @param _tokenIds array of tokenId
+    function multiTransfer(address _recv, uint256[] memory _tokenIds)
+        external
+        override
+    {
+        for (uint256 i = 0; i < _tokenIds.length; i++) {
+            safeTransferFrom(msg.sender, _recv, _tokenIds[i], "");
+        }
+    }
+
+    /// @notice get the chunk coordinates of which nft with id tokenId has jusrisdiction over
+    /// @param _tokenId id of the nft
+    /// @return (int128,int128) corresponding to the chunk with chunk coordinates (x,z);
+    function chunkOf(uint256 _tokenId)
+        external
+        view
+        override
+        returns (int128, int128)
+    {
+        require(_tokenId > 0 && _tokenId <= totalSupply, "invalid tokenId");
+
+        return (chunk_x[_tokenId], chunk_z[_tokenId]);
+    }
+
+    /// @notice calculate price for the chunk coordinate
+    /// @param _x x chunk coordinate of the plot
+    /// @param _z z chunk coordinate of the plot
+    /// @return price in wei as uin256
+    function calculateLandCost(int128 _x, int128 _z)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return _calculateLandCost(_x, _z);
+    }
+
+    // Internal Functions
+
+    /// @notice calculate price of chunk coordinate
+    /// @param _x x chunk coordinate of the plot
+    /// @param _z z chunk coordinate of the plot
+    /// @return price in wei as uin256
+    function _calculateLandCost(int128 _x, int128 _z)
+        internal
+        view
+        returns (uint256 price)
+    {
+        uint128 xA = uint128(_x >= 0 ? _x : -_x);
+        uint128 zA = uint128(_z >= 0 ? _z : -_z);
+        uint128 min = (xA < zA ? xA : zA);
+
+        price = 0;
+        for (uint256 i = 0; i < plotPrices.length; i++) {
+            if (min <= plotPriceDistances[i] && price < plotPrices[i]) {
+                price = plotPrices[i];
+            }
+        }
+    }
+
+    /// @notice claim chunks
+    /// @param _recv address which will receive the nft
+    /// @param _xs array of x chunk coordinates to match with zs
+    /// @param _zs array of z chunk coordinates to match with xs
+    function _claimLands(
+        address _recv,
+        int128[] memory _xs,
+        int128[] memory _zs
+    ) internal {
+        for (uint256 i = 0; i < _xs.length; i++) {
+            _genesisMint(_recv, _xs[i], _zs[i]);
+        }
+    }
+
+    /// @notice mint nft
+    /// @param _recv address which will receive the nft
+    /// @param _x x chunk coordinate that the nft will correspond to
+    /// @param _z z chunk coordinate that the nft will correspond to
+    function _genesisMint(
+        address _recv,
+        int128 _x,
+        int128 _z
+    ) internal returns (uint256 tokenId) {
+        require(
+            tokenIdOf[_x][_z] == 0,
+            "attempting to mint already minted land"
+        );
+
+        uint128 xA = uint128(_x >= 0 ? _x : -_x);
+        uint128 zA = uint128(_z >= 0 ? _z : -_z);
+        require(
+            (worldSize > xA) && (worldSize > zA),
+            "the claim is beyond the specified world size"
+        );
+
+        // tokenId starts from 1
+        totalSupply = totalSupply + 1;
+        _safeMint(_recv, totalSupply);
+        chunk_x[totalSupply] = _x;
+        chunk_z[totalSupply] = _z;
+        tokenIdOf[_x][_z] = totalSupply;
+
+        return totalSupply;
+    }
 }
