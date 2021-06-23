@@ -76,7 +76,7 @@ contract LandPlot is ILandPlot, ERC721Upgradeable, OwnableUpgradeable {
     ) external override onlyOwner {
         require(
             _xs.length == _zs.length,
-            "xs and ys coordinate count must match"
+            "xs and zs coordinate count must match"
         );
 
         _claimLands(_recv, _xs, _zs);
