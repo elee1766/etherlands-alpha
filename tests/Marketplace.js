@@ -39,17 +39,17 @@ describe("Marketplace", () => {
 
   it("Should be able to create auction", async () => {
     await expect(
-      marketplace.connect(userA).createAuction(landPlot.address, 0, 10)
+      marketplace.connect(userA).createAuction(landPlot.address, 0, 10, true)
     ).to.be.revertedWith("ERC721: operator query for nonexistent token");
     await expect(
-      marketplace.connect(userA).createAuction(landPlot.address, 1, 10)
+      marketplace.connect(userA).createAuction(landPlot.address, 1, 10, true)
     ).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
     await expect(
-      marketplace.createAuction(landPlot.address, 1, 10)
+      marketplace.createAuction(landPlot.address, 1, 10, true)
     ).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
 
     await landPlot.approve(marketplace.address, 1);
-    await marketplace.createAuction(landPlot.address, 1, 10);
+    await marketplace.createAuction(landPlot.address, 1, 10, true);
 
     const blockNumber = await currentBlockNumber();
     const auction = await marketplace.getAuctionInfo(0);
@@ -57,31 +57,37 @@ describe("Marketplace", () => {
     expect(auction[1]).to.be.equal(landPlot.address);
     expect(auction[2][0]).to.be.equal(1);
     expect(auction[3]).to.be.equal(blockNumber.add(10));
-    expect(auction[4]).to.be.equal(
+    expect(auction[4]).to.be.true;
+    expect(auction[5]).to.be.equal(
       "0x0000000000000000000000000000000000000000"
     );
-    expect(auction[5]).to.be.equal(0);
     expect(auction[6]).to.be.equal(0);
+    expect(auction[7]).to.be.equal(0);
   });
 
   it("Should be able to create auction with multiple tokens", async () => {
     await expect(
       marketplace
         .connect(userA)
-        .createAuctionWithMultipleTokens(landPlot.address, [], 10)
+        .createAuctionWithMultipleTokens(landPlot.address, [], 10, true)
     ).to.be.revertedWith("empty tokenId array");
     await expect(
       marketplace
         .connect(userA)
-        .createAuctionWithMultipleTokens(landPlot.address, [0, 2], 10)
+        .createAuctionWithMultipleTokens(landPlot.address, [0, 2], 10, true)
     ).to.be.revertedWith("ERC721: operator query for nonexistent token");
     await expect(
       marketplace
         .connect(userA)
-        .createAuctionWithMultipleTokens(landPlot.address, [2, 3], 10)
+        .createAuctionWithMultipleTokens(landPlot.address, [2, 3], 10, true)
     ).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
     await expect(
-      marketplace.createAuctionWithMultipleTokens(landPlot.address, [2, 3], 10)
+      marketplace.createAuctionWithMultipleTokens(
+        landPlot.address,
+        [2, 3],
+        10,
+        true
+      )
     ).to.be.revertedWith("ERC721: transfer caller is not owner nor approved");
 
     await landPlot.approve(marketplace.address, 2);
@@ -89,7 +95,8 @@ describe("Marketplace", () => {
     await marketplace.createAuctionWithMultipleTokens(
       landPlot.address,
       [2, 3],
-      10
+      10,
+      true
     );
 
     const blockNumber = await currentBlockNumber();
@@ -99,11 +106,12 @@ describe("Marketplace", () => {
     expect(auction[2][0]).to.be.equal(2);
     expect(auction[2][1]).to.be.equal(3);
     expect(auction[3]).to.be.equal(blockNumber.add(10));
-    expect(auction[4]).to.be.equal(
+    expect(auction[4]).to.be.true;
+    expect(auction[5]).to.be.equal(
       "0x0000000000000000000000000000000000000000"
     );
-    expect(auction[5]).to.be.equal(0);
     expect(auction[6]).to.be.equal(0);
+    expect(auction[7]).to.be.equal(0);
   });
 
   it("Should be able to cancel auction", async () => {
@@ -128,11 +136,12 @@ describe("Marketplace", () => {
     expect(auction[0]).to.be.equal(owner.address);
     expect(auction[1]).to.be.equal(landPlot.address);
     expect(auction[2][0]).to.be.equal(1);
-    expect(auction[4]).to.be.equal(
+    expect(auction[4]).to.be.true;
+    expect(auction[5]).to.be.equal(
       "0x0000000000000000000000000000000000000000"
     );
-    expect(auction[5]).to.be.equal(0);
-    expect(auction[6]).to.be.equal(1);
+    expect(auction[6]).to.be.equal(0);
+    expect(auction[7]).to.be.equal(1);
   });
 
   it("Should be able to bid auction", async () => {
@@ -159,7 +168,7 @@ describe("Marketplace", () => {
     expect(await landPlot.ownerOf(3)).to.be.equal(owner.address);
 
     await landPlot.approve(marketplace.address, 1);
-    await marketplace.createAuction(landPlot.address, 1, 10);
+    await marketplace.createAuction(landPlot.address, 1, 10, true);
 
     let balanceBeforeA = await ethBalance(userA.address);
 
@@ -183,9 +192,10 @@ describe("Marketplace", () => {
     expect(auction[0]).to.be.equal(owner.address);
     expect(auction[1]).to.be.equal(landPlot.address);
     expect(auction[2][0]).to.be.equal(1);
-    expect(auction[4]).to.be.equal(userB.address);
-    expect(auction[5]).to.be.equal(units(1.5));
-    expect(auction[6]).to.be.equal(0);
+    expect(auction[4]).to.be.true;
+    expect(auction[5]).to.be.equal(userB.address);
+    expect(auction[6]).to.be.equal(units(1.5));
+    expect(auction[7]).to.be.equal(0);
 
     // try cancel
     balanceBeforeB = await ethBalance(userB.address);
@@ -201,16 +211,17 @@ describe("Marketplace", () => {
     expect(auction[0]).to.be.equal(owner.address);
     expect(auction[1]).to.be.equal(landPlot.address);
     expect(auction[2][0]).to.be.equal(1);
-    expect(auction[4]).to.be.equal(
+    expect(auction[4]).to.be.true;
+    expect(auction[5]).to.be.equal(
       "0x0000000000000000000000000000000000000000"
     );
-    expect(auction[5]).to.be.equal(0);
-    expect(auction[6]).to.be.equal(1);
+    expect(auction[6]).to.be.equal(0);
+    expect(auction[7]).to.be.equal(1);
   });
 
   it("Should be able to claim auction", async () => {
     await landPlot.approve(marketplace.address, 1);
-    await marketplace.createAuction(landPlot.address, 1, 10);
+    await marketplace.createAuction(landPlot.address, 1, 10, true);
     await marketplace.connect(userA).bid(3, { value: units(1) });
 
     await expect(marketplace.claim(4)).to.be.revertedWith("invalid auction id");
@@ -225,9 +236,10 @@ describe("Marketplace", () => {
     expect(auction[0]).to.be.equal(owner.address);
     expect(auction[1]).to.be.equal(landPlot.address);
     expect(auction[2][0]).to.be.equal(1);
-    expect(auction[4]).to.be.equal(userA.address);
-    expect(auction[5]).to.be.equal(units(1));
-    expect(auction[6]).to.be.equal(2);
+    expect(auction[4]).to.be.true;
+    expect(auction[5]).to.be.equal(userA.address);
+    expect(auction[6]).to.be.equal(units(1));
+    expect(auction[7]).to.be.equal(2);
 
     await expect(marketplace.claim(3)).to.be.revertedWith("not winner");
 
@@ -248,9 +260,48 @@ describe("Marketplace", () => {
     expect(auction[0]).to.be.equal(owner.address);
     expect(auction[1]).to.be.equal(landPlot.address);
     expect(auction[2][0]).to.be.equal(1);
-    expect(auction[4]).to.be.equal(userA.address);
-    expect(auction[5]).to.be.equal(units(1));
-    expect(auction[6]).to.be.equal(3);
+    expect(auction[4]).to.be.true;
+    expect(auction[5]).to.be.equal(userA.address);
+    expect(auction[6]).to.be.equal(units(1));
+    expect(auction[7]).to.be.equal(3);
+  });
+
+  it("Should be able to extend auction period", async () => {
+    await expect(marketplace.extendAuction(4, 10)).to.be.revertedWith(
+      "invalid auction id"
+    );
+
+    await expect(
+      marketplace.connect(userA).extendAuction(3, 10)
+    ).to.be.revertedWith("not auction creator");
+
+    await expect(marketplace.extendAuction(3, 10)).to.be.revertedWith(
+      "auction finished"
+    );
+
+    await landPlot.approve(marketplace.address, 2);
+    await marketplace.createAuction(landPlot.address, 2, 10, false);
+
+    await expect(marketplace.extendAuction(4, 10)).to.be.revertedWith(
+      "not extendable"
+    );
+
+    await marketplace.cancelAuction(4);
+
+    await landPlot.approve(marketplace.address, 2);
+    await marketplace.createAuction(landPlot.address, 2, 10, true);
+
+    const auctionBefore = await marketplace.getAuctionInfo(5);
+
+    await marketplace.extendAuction(5, 10);
+
+    const auctionAfter = await marketplace.getAuctionInfo(5);
+
+    expect(ethers.BigNumber.from(auctionBefore[3]).add(10)).to.be.equal(
+      auctionAfter[3]
+    );
+
+    await marketplace.cancelAuction(5);
   });
 
   it("Should be able to create purchase", async () => {

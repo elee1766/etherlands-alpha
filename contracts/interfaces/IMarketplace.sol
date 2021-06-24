@@ -32,6 +32,7 @@ interface IMarketplace {
             address token,
             uint256[] memory tokenIds,
             uint256 endBlock,
+            bool extendable,
             address bidder,
             uint256 bidAmount,
             AuctionStatus status
@@ -52,14 +53,18 @@ interface IMarketplace {
     function createAuction(
         address _token,
         uint256 _tokenId,
-        uint256 _period
+        uint256 _period,
+        bool _extendable
     ) external;
 
     function createAuctionWithMultipleTokens(
         address _token,
         uint256[] memory _tokenIds,
-        uint256 _period
+        uint256 _period,
+        bool _extendable
     ) external;
+
+    function extendAuction(uint256 _auctionId, uint256 _period) external;
 
     function cancelAuction(uint256 _auctionId) external;
 

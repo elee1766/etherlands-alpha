@@ -23,6 +23,8 @@ contract Marketplace is
         uint256[] tokenIds;
         // auction end block number
         uint256 endBlock;
+        // endBlock can be extendable
+        bool extendable;
         // auction bid status
         address bidder;
         uint256 bidAmount;
@@ -64,6 +66,7 @@ contract Marketplace is
             address token,
             uint256[] memory tokenIds,
             uint256 endBlock,
+            bool extendable,
             address bidder,
             uint256 bidAmount,
             AuctionStatus status
@@ -85,6 +88,7 @@ contract Marketplace is
             auction.token,
             auction.tokenIds,
             auction.endBlock,
+            auction.extendable,
             auction.bidder,
             auction.bidAmount,
             status
@@ -133,10 +137,12 @@ contract Marketplace is
     /// @param _token the ERC721 token address
     /// @param _tokenId the tokenId for auction
     /// @param _period the auction period - block number
+    /// @param _extendable auction period can be extendable
     function createAuction(
         address _token,
         uint256 _tokenId,
-        uint256 _period
+        uint256 _period,
+        bool _extendable
     ) external override {
         ERC721Upgradeable(_token).safeTransferFrom(
             msg.sender,
@@ -153,6 +159,7 @@ contract Marketplace is
                 _token,
                 tokenIds,
                 block.number + _period,
+                _extendable,
                 address(0),
                 0,
                 AuctionStatus.Started
@@ -165,10 +172,12 @@ contract Marketplace is
     /// @param _token the ERC721 token address
     /// @param _tokenIds the tokenIds for auction
     /// @param _period the auction period
+    /// @param _extendable auction period can be extendable
     function createAuctionWithMultipleTokens(
         address _token,
         uint256[] memory _tokenIds,
-        uint256 _period
+        uint256 _period,
+        bool _extendable
     ) external override {
         require(_tokenIds.length > 0, "empty tokenId array");
 
@@ -186,11 +195,35 @@ contract Marketplace is
                 _token,
                 _tokenIds,
                 block.number + _period,
+                _extendable,
                 address(0),
                 0,
                 AuctionStatus.Started
             )
         );
+    }
+
+    /// @notice extend auction period
+    /// @param _auctionId the auction id
+    /// @param _period the increased period
+    function extendAuction(uint256 _auctionId, uint256 _period)
+        external
+        override
+    {
+        require(_auctionId < auctions.length, "invalid auction id");
+
+        Auction memory auction = auctions[_auctionId];
+        require(msg.sender == auction.creator, "not auction creator");
+        require(auction.extendable, "not extendable");
+
+        require(
+            auction.status == AuctionStatus.Started &&
+                (block.number <= auction.endBlock ||
+                    auction.bidder == address(0)),
+            "auction finished"
+        );
+
+        auctions[_auctionId].endBlock += _period;
     }
 
     /// @notice cancel auction
