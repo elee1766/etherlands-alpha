@@ -92,7 +92,7 @@ describe("LandPlot", () => {
     ).to.be.revertedWith("Ownable: caller is not the owner");
     await expect(
       landPlot.mintMany(owner.address, xs, [...zs, 1])
-    ).to.be.revertedWith("xs and ys coordinate count must match");
+    ).to.be.revertedWith("xs and zs coordinate count must match");
     await expect(
       landPlot.mintMany(owner.address, [...xs, 0], [...zs, 0])
     ).to.be.revertedWith("attempting to mint already minted land");
