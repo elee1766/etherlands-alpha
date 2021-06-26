@@ -6,13 +6,8 @@
 const hre = require("hardhat");
 const { ethers, upgrades } = require("hardhat");
 
-let LandPlot;
-let landplot;
 let accounts;
 let deployer;
-let A;
-
-let ticketprice = 1000000000000000;
 
 let combo_x = [];
 let combo_y = [];
@@ -42,9 +37,13 @@ async function main() {
   const LandPlot = await ethers.getContractFactory("LandPlot");
   const landplot = await upgrades.deployProxy(LandPlot, ["LandPlot", "CHUNK"]);
   await landplot.deployed();
-  await landplot
+  landplot
     .connect(deployer)
     .mintMany(await deployer.getAddress(), combo_x, combo_y);
+
+  const Marketplace = await ethers.getContractFactory("Marketplace");
+  const marketplace = await upgrades.deployProxy(Marketplace);
+  await marketplace.deployed();
 }
 
 // We recommend this pattern to be able to use async/await everywhere
