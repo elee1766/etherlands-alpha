@@ -46,7 +46,7 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
         worldSize = 2000000; //the world is 4,000,000 x 4,000,000 plots
     }
 
-    /*** setters / admin functions ***/
+    /*** setters ***/
 
     function setClaimable(bool _claimable) external override onlyOwner {
         claimable = _claimable;
@@ -172,5 +172,18 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
 
 
         return totalPlots;
+    }
+
+    /*** admin functions ***/
+
+    // the owner of the contract may claim any unclaimed plot and assign it to any district id
+    function adminClaim(int128[] calldata _xs, int128[] calldata _zs, uint256 _districtId) external override onlyOwner {
+        require(
+            _xs.length == _zs.length,
+            "xs and zs array lengths must match!"
+        );
+        for (uint256 i = 0; i < _xs.length; i++) {
+            _claimPlot(_districtId, _xs[i], _zs[i]);
+        }
     }
 }

@@ -34,20 +34,12 @@ async function main() {
   accounts = await ethers.getSigners();
   deployer = accounts[0];
   A = accounts[1];
-  const LandPlot = await ethers.getContractFactory("LandPlot");
-  const landplot = await upgrades.deployProxy(LandPlot, ["LandPlot", "CHUNK"]);
-  await landplot.deployed();
-  landplot
-    .connect(deployer)
-    .mintMany(await deployer.getAddress(), combo_x, combo_y);
-
-  const Marketplace = await ethers.getContractFactory("Marketplace");
-  const marketplace = await upgrades.deployProxy(Marketplace);
-  await marketplace.deployed();
+  const District = await ethers.getContractFactory("District");
+  const district = await upgrades.deployProxy(District, ["District", "DEED"]);
+  await district.deployed();
+  district.connect(deployer).adminClaim(combo_x, combo_y, 0);
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
 main()
   .then(() => process.exit(0))
   .catch((error) => {
