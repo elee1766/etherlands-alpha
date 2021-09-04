@@ -12,10 +12,7 @@ import "./IDistrict.sol";
 contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
 
 
-    /*** variables and mappings ***/
-
-    uint256 public totalPlots; // total number of minted plots
-    uint128 public worldSize; // maximum value of any plot coordinate
+    /*** variables ***/
 
     // plot price is calculated through comparing the smaller of the absolute value of both coordinates
     // the price is the last plotPrice index which corresponds with the plotPriceDistances in which the
@@ -26,15 +23,20 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
 
     uint256 public districtPrice; // price to mint a district without any deeds
 
-    bool public claimable; // whether or not it is possible to mint an district or claim deeds
+    uint256 public totalPlots; // total number of minted plots
     uint256 public totalSupply; // total currently minted districts
 
+    bool public claimable; // whether or not it is possible to mint an district or claim deeds
+
+    uint128 public worldSize; // maximum value of any plot coordinate
+
+
+    /*** mappings ***/
 
     mapping(uint256 => int128) public plot_x; // mapping from plotId to x plot coordinate;
     mapping(uint256 => int128) public plot_z; // mapping from plotId to z plot coordinate;
     mapping(uint256 => uint256) public plotDistrictOf; // mapping from plotId to the district it is a part of
     mapping(int128 => mapping(int128 => uint256)) public plotIdOf; // mapping from x to z to plotId
-
 
     /*** proxy logic ***/
 
