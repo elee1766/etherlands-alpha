@@ -48,10 +48,7 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
         claimable = _claimable;
     }
 
-    function setPlotPrices(
-        uint256[] memory _prices,
-        uint256[] memory _distances
-    ) external override onlyOwner {
+    function setPlotPrices(uint256[] memory _prices, uint256[] memory _distance) external override onlyOwner {
         require(_prices.length == _distances.length,
                 "District: Length doesn't match");
         plotPrices = _prices;
@@ -146,11 +143,7 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
 
     /*** claim logic ***/
     // we claim deeds by adding them to an existing estate.
-    function _claimPlot(
-        uint256 _districtId,
-        int128 _x,
-        int128 _z
-    ) internal returns (uint256 tokenId) {
+    function _claimPlot(uint256 _districtId, int128 _x, int128 _z) internal returns (uint256 tokenId) {
         require(plotIdOf[_x][_z] == 0,
             "attempting to claim already minted land");
 
