@@ -58,14 +58,16 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
         uint256[] memory _prices,
         uint256[] memory _distances
     ) external override onlyOwner {
-        require(_prices.length == _distances.length, "length doesn't match");
+        require(_prices.length == _distances.length,
+                "District: Length doesn't match");
 
         plotPrices = _prices;
         plotPriceDistances = _distances;
     }
 
     function setWorldSize(uint128 _worldSize) external override onlyOwner {
-        require(_worldSize > 0, "World limit must be > 0");
+        require(_worldSize > 0,
+                "District: World limit must be > 0");
         worldSize = _worldSize;
     }
 
@@ -92,14 +94,16 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
     }
 
     function transferPlot(uint256 origin_id, uint256 target_id, uint256[] calldata plot_ids) override external {
-        require(_isApprovedOrOwner(_msgSender(), origin_id), "District: transfer caller is not owner nor approved");
+        require(_isApprovedOrOwner(_msgSender(), origin_id),
+                "District: transfer caller is not owner nor approved");
         for (uint256 i = 0; i < plot_ids.length; i++) {
             _transferPlot(origin_id,target_id,plot_ids[i]);
         }
     }
 
     function _transferPlot(uint256 origin_id, uint256 target_id, uint256 plot_id) internal {
-        require(plotDistrictOf[plot_id] == origin_id, "District: Attempted to move plot not within origin district");
+        require(plotDistrictOf[plot_id] == origin_id,
+                "District: Attempted to move plot not within origin district");
         plotDistrictOf[plot_id] = target_id;
         emit PlotTransfer(origin_id,target_id,plot_id);
     }
@@ -108,11 +112,10 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
     // an district is the actual ERC721. it is a collection of plotIds.
 
     function claimDistrictLands(int128[] calldata _xs, int128[] calldata _zs, uint256 _districtId) external override payable {
-        require(claimable,"claiming is currently disabled");
-        require(
-            _xs.length == _zs.length,
-            "xs and zs array lengths must match!"
-        );
+        require(claimable,
+                "claiming is currently disabled");
+        require(_xs.length == _zs.length,
+            "xs and zs array lengths must match!");
 
         uint256 _id = _districtId;
         if(_districtId == 0){
@@ -120,7 +123,8 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
             _safeMint(_msgSender(), totalSupply);
             _id = totalSupply;
         }else{
-            require(ERC721Upgradeable.ownerOf(_districtId) != address(0),"District: Attempting to claim lands to nonexistent district");
+            require(ERC721Upgradeable.ownerOf(_districtId) != address(0),
+                    "District: Attempting to claim lands to nonexistent district");
         }
         // calculate total cost
         uint256 total_cost = 0;
