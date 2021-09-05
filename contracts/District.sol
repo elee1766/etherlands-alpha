@@ -71,7 +71,7 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
     // the smallest subdivision of land is a plot
     // one plot represents a 16x16 plot of land within the minecraft game
 
-    function _calculateLandCost(int128 _x, int128 _z) internal view returns (price){
+    function _calculateLandCost(int128 _x, int128 _z) internal view returns (uint256){
         uint128 xA = uint128(_x >= 0 ? _x : -_x);
         uint128 zA = uint128(_z >= 0 ? _z : -_z);
         uint128 min = (xA < zA ? xA : zA);
