@@ -1,8 +1,3 @@
-// We require the Hardhat Runtime Environment explicitly here. This is optional
-// but useful for running the script in a standalone fashion through `node <script>`.
-//
-// When running the script with `hardhat run <script>` you'll find the Hardhat
-// Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
 const { ethers, upgrades } = require("hardhat");
 
@@ -35,9 +30,13 @@ async function main() {
   deployer = accounts[0];
   A = accounts[1];
   const District = await ethers.getContractFactory("District");
+  console.log("deplying proxy");
   const district = await upgrades.deployProxy(District, ["District", "DEED"]);
   await district.deployed();
+  console.log("proxy deployed");
+  console.log("admin claim land");
   district.connect(deployer).adminClaim(combo_x, combo_y, 0);
+  console.log("done claiming land");
 }
 
 main()
