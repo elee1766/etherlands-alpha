@@ -14,9 +14,7 @@ module.exports = {
     polygon: {
       url: process.env.RPC_URL,
       accounts: [process.env.PRIVATE_KEY],
-    },
-    localhost: {
-      url: "http://127.0.0.1:8545",
+      gasPrice: 1000000000,
     },
   },
   etherscan: {
