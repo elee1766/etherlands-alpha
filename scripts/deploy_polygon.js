@@ -28,7 +28,6 @@ async function main() {
   // await hre.run('compile');
   accounts = await ethers.getSigners();
   deployer = accounts[0];
-  A = accounts[1];
   const District = await ethers.getContractFactory("District");
   console.log("deplying proxy");
   const district = await upgrades.deployProxy(District, ["District", "DEED"]);

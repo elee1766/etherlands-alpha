@@ -1,4 +1,5 @@
 require("@nomiclabs/hardhat-waffle");
+require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
 require("@openzeppelin/hardhat-upgrades");
 require("solidity-coverage");
@@ -13,8 +14,6 @@ module.exports = {
     polygon: {
       url: process.env.RPC_URL,
       accounts: [process.env.PRIVATE_KEY],
-      network_id: 80001,
-      gasPrice: 1000001,
     },
     localhost: {
       url: "http://127.0.0.1:8545",
@@ -29,7 +28,7 @@ module.exports = {
     version: "0.8.4",
     settings: {
       optimizer: {
-        enabled: false,
+        enabled: true,
         runs: 200,
       },
     },
