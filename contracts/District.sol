@@ -49,7 +49,7 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
         claimable = _claimable;
     }
 
-    function setPlotPrices(uint256[] memory _prices, uint256[] memory _distance) external override onlyOwner {
+    function setPlotPrices(uint256[] memory _prices, uint256[] memory _distances) external override onlyOwner {
         require(_prices.length == _distances.length,
                 "District: Length doesn't match");
         plotPrices = _prices;
