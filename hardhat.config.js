@@ -8,9 +8,14 @@ require("dotenv").config();
  * @type import('hardhat/config').HardhatUserConfig
  */
 module.exports = {
-  defaultNetwork: "hardhat",
+  defaultNetwork: "polygon",
   networks: {
-    hardhat: {},
+    polygon: {
+      url: process.env.RPC_URL,
+      accounts: [process.env.PRIVATE_KEY],
+      network_id: 80001,
+      gasPrice: 1000001,
+    },
     localhost: {
       url: "http://127.0.0.1:8545",
     },

@@ -32,6 +32,7 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
     mapping(uint256 => uint256) public plotDistrictOf; // mapping from plotId to the district it is a part of
     mapping(int128 => mapping(int128 => uint256)) public plotIdOf; // mapping from x to z to plotId
 
+
     /*** proxy logic ***/
 
     function initialize(string memory _name, string memory _symbol) public override initializer {
@@ -171,4 +172,5 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
             _claimPlot(_districtId, _xs[i], _zs[i]);
         }
     }
+
 }
