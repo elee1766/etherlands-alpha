@@ -1,6 +1,8 @@
 const hre = require("hardhat");
 const { ethers, upgrades } = require("hardhat");
 
+const abis = require("./abis");
+
 let accounts;
 let deployer;
 
@@ -19,12 +21,15 @@ async function main() {
   const District = (await ethers.getContractFactory("District")).connect(
     deployer
   );
-  console.log("upgrading proxy");
-  const district = await upgrades.upgradeProxy(
+  console.log("deploying new contract");
+  const district = await District.deploy();
+  const impl = district.address;
+
+  const proxy = new ethers.Contract(
     "0xc7B4Cdf2c8ff3FC94D4f9f882D86CE824e0FB985",
-    District
+    abis.proxy,
+    deployer
   );
-  console.log(district);
   console.log("upgraded");
 }
 
