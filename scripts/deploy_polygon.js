@@ -27,15 +27,16 @@ async function main() {
   // manually to make sure everything is compiled
   // await hre.run('compile');
   accounts = await ethers.getSigners();
-  deployer = accounts[0];
-  const District = await ethers.getContractFactory("District");
-  console.log("deplying proxy");
+  deployer = await accounts[0];
+  const District = (await ethers.getContractFactory("District")).connect(
+    deployer
+  );
+  console.log("deplying 1");
   const district = await upgrades.deployProxy(District, ["District", "DEED"]);
   await district.deployed();
-  console.log("proxy deployed");
   console.log("admin claim land");
-  district.connect(deployer).adminClaim(combo_x, combo_y, 0);
-  console.log("done claiming land");
+  const test = await district.connect(deployer).adminClaim(combo_x, combo_y, 0);
+  console.log("done claiming land", test);
 }
 
 main()

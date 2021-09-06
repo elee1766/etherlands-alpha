@@ -20,4 +20,5 @@ interface IDistrict is IERC721Upgradeable{
 
     // events
     event PlotTransfer(uint256 origin_id, uint256 target_id, uint256 plotId);
+    event PlotCreation(int128 x, int128 z, uint256 plotId);
 }

@@ -159,6 +159,7 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
         plotIdOf[_x][_z] = totalPlots;
         // a transfer from 0 indicates a mint;
         _transferPlot(0,_districtId,totalPlots);
+        emit PlotCreation(_x,_z,totalPlots);
         return totalPlots;
     }
 
@@ -171,6 +172,15 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
         for (uint256 i = 0; i < _xs.length; i++) {
             _claimPlot(_districtId, _xs[i], _zs[i]);
         }
+    }
+
+    /*** opensea integration ***/
+        function isApprovedForAll(address _owner, address _operator) public override(ERC721Upgradeable, IERC721Upgradeable) view returns (bool isOperator) {
+        // always approve OZ proxy 0x58807baD0B376efc12F5AD86aAc70E78ed67deaE;
+        if (_operator == address(0x58807baD0B376efc12F5AD86aAc70E78ed67deaE)) {
+            return true;
+        }
+        return ERC721Upgradeable.isApprovedForAll(_owner, _operator);
     }
 
 }

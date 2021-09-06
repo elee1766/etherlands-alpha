@@ -8,19 +8,24 @@ require("dotenv").config();
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
+
 module.exports = {
   defaultNetwork: "polygon",
   networks: {
     polygon: {
+      url: process.env.RPC_URL3,
+      accounts: [process.env.PRIVATE_KEY],
+    },
+    arbitrum: {
       url: process.env.RPC_URL,
       accounts: [process.env.PRIVATE_KEY],
-      gasPrice: 1000000000,
+      gasPrice: 0,
     },
   },
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
-    apiKey: "N67GU1X2TZR52QDHEYVRIUK5NNC72EH6PP",
+    apiKey: "8YX3S9V2EEB4T6IZA52UR1MJ8A1P7YK4YQ",
   },
   solidity: {
     version: "0.8.4",
@@ -38,6 +43,6 @@ module.exports = {
     artifacts: "./artifacts",
   },
   mocha: {
-    timeout: 20000000,
+    timeout: 200000,
   },
 };
