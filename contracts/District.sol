@@ -3,10 +3,13 @@ pragma solidity ^0.8.0;
 
 import "./openzeppelin/access/OwnableUpgradeable.sol";
 import "./openzeppelin/token/ERC721/ERC721Upgradeable.sol";
+import "./maticnetwork/NativeMetaTransaction.sol";
+
 
 import "./IDistrict.sol";
 
-contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
+
+contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMetaTransaction{
     /*** variables ***/
 
     // plot price is calculated through comparing the smaller of the absolute value of both coordinates
@@ -37,6 +40,7 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict {
 
     function initialize(string memory _name, string memory _symbol) public override initializer {
         __ERC721_init(_name, _symbol);
+        __EIP712Base_init(_name);
         __Ownable_init();
 
         claimable = false; // purchases are not initially available
