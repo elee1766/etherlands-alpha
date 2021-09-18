@@ -18,7 +18,6 @@ contract EtherlandsToken is IEtherlandsToken, ERC20Upgradeable, OwnableUpgradeab
         paused = true;
     }
 
-
     function _beforeTokenTransfer(
         address from,
         address to,

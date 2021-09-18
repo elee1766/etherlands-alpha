@@ -15,10 +15,14 @@ interface IDistrict is IERC721Upgradeable{
     function adminClaim(int128[] calldata _xs, int128[] calldata _zs, uint256 _districtId) external;
 
     // usage functions
+
+    function setDistrictName(uint256 district_id, bytes24 districtName) external;
     function transferPlot(uint256 origin_id, uint256 target_id, uint256[] calldata plot_ids) external;
-    function claimDistrictLands(int128[] calldata _xs, int128[] calldata _zs, uint256 _districtId) external payable;
+    function claimDistrictLands(int128[] calldata _xs, int128[] calldata _zs, uint256 _districtId, bytes24 _name) external payable;
 
     // events
     event PlotTransfer(uint256 origin_id, uint256 target_id, uint256 plotId);
     event PlotCreation(int128 x, int128 z, uint256 plotId);
+
+    event DistrictName(uint256 district_id);
 }

@@ -28,6 +28,8 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
 
     uint128 public worldSize; // maximum value of any plot coordinate
 
+
+
     /*** mappings ***/
 
     mapping(uint256 => int128) public plot_x; // mapping from plotId to x plot coordinate;
@@ -35,6 +37,10 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
     mapping(uint256 => uint256) public plotDistrictOf; // mapping from plotId to the district it is a part of
     mapping(int128 => mapping(int128 => uint256)) public plotIdOf; // mapping from x to z to plotId
 
+
+
+    mapping(bytes24=>uint256) public nameDistrictOf;
+    mapping(uint256=>bytes24) public districtNameOf;
 
     /*** proxy logic ***/
 
@@ -70,6 +76,11 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
         districtPrice = _districtPrice;
     }
 
+    function setCounts(uint256 plots, uint256 districts) external onlyOwner{
+        totalPlots = plots;
+        totalSupply = districts;
+    }
+
     /*** plot logic ***/
 
     // the smallest subdivision of land is a plot
@@ -97,6 +108,21 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
             _transferPlot(origin_id,target_id,plot_ids[i]);
         }
     }
+    function setDistrictName(uint256 district_id, bytes24 districtName) override public  {
+        require(_isApprovedOrOwner(_msgSender(), district_id),
+                "District: set name caller is not owner nor approved");
+        for(uint256 i = 0; i < districtName.length; i++){
+            require(districtName[i] < 0x42, "invalid character");
+        }
+        require(nameDistrictOf[districtName] == 0 || nameDistrictOf[districtName] == district_id, "name taken");
+        if(districtNameOf[district_id] != 0x0){
+            nameDistrictOf[districtNameOf[district_id]] = 0x0;
+        }
+        nameDistrictOf[districtName] = district_id;
+        districtNameOf[district_id] = districtName;
+
+        emit DistrictName(district_id);
+    }
 
     function _transferPlot(uint256 origin_id, uint256 target_id, uint256 plot_id) internal {
         require(plotDistrictOf[plot_id] == origin_id,
@@ -108,7 +134,8 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
     /*** district logic ***/
     // an district is the actual ERC721. it is a collection of plotIds.
 
-    function claimDistrictLands(int128[] calldata _xs, int128[] calldata _zs, uint256 _districtId) external override payable {
+    function claimDistrictLands(int128[] calldata _xs, int128[] calldata _zs,
+                                uint256 _districtId, bytes24 _nickname) external override payable {
         require(claimable,
                 "claiming is currently disabled");
         uint256 _id = _districtId;
@@ -116,9 +143,12 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
             totalSupply = totalSupply + 1;
             _safeMint(_msgSender(), totalSupply);
             _id = totalSupply;
+            if(_nickname != 0){
+                setDistrictName(_id, _nickname);
+            }
         }else{
             require(ERC721Upgradeable.ownerOf(_districtId) != address(0),
-                    "District: Attempting to claim lands to nonexistent district");
+                "District: Attempting to claim lands to nonexistent district");
         }
         require(_xs.length == _zs.length,
             "xs and zs array lengths must match!");
@@ -143,8 +173,8 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
         for (uint256 i = 0; i < _xs.length; i++) {
             _claimPlot(_id, _xs[i], _zs[i]);
         }
-
     }
+
 
     /*** claim logic ***/
     // we claim deeds by adding them to an existing estate.
