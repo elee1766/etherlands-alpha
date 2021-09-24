@@ -11,7 +11,6 @@ import "../proxy/utils/Initializable.sol";
  * paying for execution may not be the actual sender (as far as an application
  * is concerned).
  *
- * This contract is only required for intermediate, library-like contracts.
  */
 abstract contract ContextUpgradeable is Initializable {
     function __Context_init() internal initializer {

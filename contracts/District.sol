@@ -5,7 +5,7 @@ import "./openzeppelin/access/OwnableUpgradeable.sol";
 import "./openzeppelin/token/ERC721/ERC721Upgradeable.sol";
 import "./maticnetwork/NativeMetaTransaction.sol";
 
-
+import "./IERC20.sol";
 import "./IDistrict.sol";
 
 
@@ -28,7 +28,11 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
 
     uint128 public worldSize; // maximum value of any plot coordinate
 
+    IERC20 public underlyingCurrency;
+    IERC20 public rewardCurrency;
+    uint256 public rewardAmount;
 
+    address public trustedForwarder;
 
     /*** mappings ***/
 
@@ -37,6 +41,8 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
     mapping(uint256 => uint256) public plotDistrictOf; // mapping from plotId to the district it is a part of
     mapping(int128 => mapping(int128 => uint256)) public plotIdOf; // mapping from x to z to plotId
 
+    mapping(address => uint256) public totalRewardsOf;
+    mapping(address => uint256) public claimedRewardsOf;
 
 
     mapping(bytes24=>uint256) public nameDistrictOf;
@@ -76,6 +82,22 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
         districtPrice = _districtPrice;
     }
 
+    function setUnderlyingCurrency(address _erc20Address) external override onlyOwner {
+        underlyingCurrency = IERC20(_erc20Address);
+    }
+
+    function setRewardCurrency(address _erc20Address) external override onlyOwner {
+        rewardCurrency = IERC20(_erc20Address);
+    }
+
+    function setRewardAmount(uint256 amount) external override onlyOwner {
+        rewardAmount = amount;
+    }
+
+    function setTrustedForwarder(address _address) external onlyOwner{
+        trustedForwarder = _address;
+    }
+
     function setCounts(uint256 plots, uint256 districts) external onlyOwner{
         totalPlots = plots;
         totalSupply = districts;
@@ -89,11 +111,11 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
     function _calculateLandCost(int128 _x, int128 _z) internal view returns (uint256){
         uint128 xA = uint128(_x >= 0 ? _x : -_x);
         uint128 zA = uint128(_z >= 0 ? _z : -_z);
-        uint128 min = (xA < zA ? xA : zA);
+        uint128 max = (xA > zA ? xA : zA);
 
         uint256 price = 0;
         for (uint256 i = 0; i < plotPrices.length; i++) {
-            if (min <= plotPriceDistances[i] && price < plotPrices[i]) {
+            if (max >= plotPriceDistances[i]) {
                 price = plotPrices[i];
             }
         }
@@ -114,6 +136,7 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
         for(uint256 i = 0; i < districtName.length; i++){
             require(districtName[i] < 0x42, "invalid character");
         }
+        require(validate24Name(districtName), "Name must be 0 terminated");
         require(nameDistrictOf[districtName] == 0 || nameDistrictOf[districtName] == district_id, "name taken");
         if(districtNameOf[district_id] != 0x0){
             nameDistrictOf[districtNameOf[district_id]] = 0x0;
@@ -124,6 +147,21 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
         emit DistrictName(district_id);
     }
 
+    function validate24Name(bytes24 name) internal pure returns (bool) {
+        bool found = false;
+        for (uint256 i = 0; i < 24; i++){
+            if(name[i] == 0x00){
+                found = true;
+            }
+            if(found){
+                if(name[i] != 0x00){
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     function _transferPlot(uint256 origin_id, uint256 target_id, uint256 plot_id) internal {
         require(plotDistrictOf[plot_id] == origin_id,
                 "District: Attempted to move plot not within origin district");
@@ -131,11 +169,19 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
         emit PlotTransfer(origin_id,target_id,plot_id);
     }
 
+    /*** reward logic ***/
+
+    function claimRewardsFor(address _target) public override {
+        uint256 amount = totalRewardsOf[_target] - claimedRewardsOf[_target];
+        claimedRewardsOf[_target] = totalRewardsOf[_target];
+        rewardCurrency.transfer(_msgSender(),amount);
+    }
+
     /*** district logic ***/
     // an district is the actual ERC721. it is a collection of plotIds.
 
     function claimDistrictLands(int128[] calldata _xs, int128[] calldata _zs,
-                                uint256 _districtId, bytes24 _nickname) external override payable {
+                                uint256 _districtId, bytes24 _nickname) external override {
         require(claimable,
                 "claiming is currently disabled");
         uint256 _id = _districtId;
@@ -143,7 +189,7 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
             totalSupply = totalSupply + 1;
             _safeMint(_msgSender(), totalSupply);
             _id = totalSupply;
-            if(_nickname != 0){
+            if(_nickname != 0x0){
                 setDistrictName(_id, _nickname);
             }
         }else{
@@ -160,18 +206,15 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
         if(_xs.length == 0){
             total_cost = total_cost + districtPrice;
         }
-        require(
-            msg.value >= total_cost,
-            "not enough eth sent to purchase land"
-        );
-
-        if (msg.value > total_cost) {
-            uint256 remaining = msg.value - total_cost;
-            payable(msg.sender).transfer(remaining);
-        }
-
+        underlyingCurrency.transferFrom(_msgSender(),address(this),total_cost);
         for (uint256 i = 0; i < _xs.length; i++) {
             _claimPlot(_id, _xs[i], _zs[i]);
+        }
+        totalRewardsOf[_msgSender()] = totalRewardsOf[_msgSender()] + _xs.length;
+
+        uint256 amount = totalRewardsOf[_msgSender()] - claimedRewardsOf[_msgSender()];
+        if(amount > 100){
+            claimRewardsFor(_msgSender());
         }
     }
 
@@ -186,6 +229,8 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
         uint128 zA = uint128(_z >= 0 ? _z : -_z);
         require((worldSize > xA) && (worldSize > zA),
             "the claim is beyond the specified world size");
+        require((xA > 2) && (zA > 2),
+                "the claim is too close to the axis");
         // the first plot has id = 1;
         totalPlots = totalPlots + 1;
         plot_x[totalPlots] = _x;
@@ -215,6 +260,22 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
             return true;
         }
         return ERC721Upgradeable.isApprovedForAll(_owner, _operator);
+    }
+
+
+    /*** metatransaction logic ***/
+
+    function isTrustedForwarder(address forwarder) public view override returns(bool) {
+        return forwarder == trustedForwarder;
+    }
+
+    function _msgSender() internal override view returns (address signer) {
+        signer = msg.sender;
+        if (msg.data.length>=20 && isTrustedForwarder(signer)) {
+            assembly {
+                signer := shr(96,calldataload(sub(calldatasize(),20)))
+            }
+        }
     }
 
 }
