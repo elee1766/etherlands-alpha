@@ -109,7 +109,7 @@ contract ERC721Upgradeable is Initializable, ContextUpgradeable, ERC165Upgradeab
      * in child contracts.
      */
     function _baseURI() internal view virtual returns (string memory) {
-        return "http://etherlands.com/metalink/district/";
+        return "https://etherlands.com/metalink/district/";
     }
 
     /**
