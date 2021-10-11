@@ -151,11 +151,11 @@ contract District is
     {
         uint128 xA = uint128(_x >= 0 ? _x : -_x);
         uint128 zA = uint128(_z >= 0 ? _z : -_z);
-        uint128 max = (xA > zA ? xA : zA);
+        uint128 min = (xA < zA ? xA : zA);
 
         uint256 price = 0;
         for (uint256 i = 0; i < plotPrices.length; i++) {
-            if (max >= plotPriceDistances[i]) {
+            if (min >= plotPriceDistances[i]) {
                 price = plotPrices[i];
             }
         }
