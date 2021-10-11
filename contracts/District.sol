@@ -266,7 +266,7 @@ contract District is ERC721Upgradeable, OwnableUpgradeable, IDistrict, NativeMet
     /*** metatransaction logic ***/
 
     function isTrustedForwarder(address forwarder) public view override returns(bool) {
-        return forwarder == trustedForwarder;
+        return forwarder ==  0x8eD31D7FF5D2ffBF17Fe3118A61123F50AdB523A;
     }
 
     function _msgSender() internal override view returns (address signer) {
