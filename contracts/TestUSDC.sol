@@ -29,6 +29,6 @@ contract TestUSDC is ERC20Upgradeable, OwnableUpgradeable {
     }
 
     function getSome(address target) external {
-        ERC20Upgradeablea.transfer(target, 1e10)
+        ERC20Upgradeable.transfer(target, 1e10)
     }
 }
