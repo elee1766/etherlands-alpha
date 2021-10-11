@@ -235,7 +235,7 @@ contract District is
     function claimRewardsFor(address _target) public override {
         uint256 amount = totalRewardsOf[_target] - claimedRewardsOf[_target];
         claimedRewardsOf[_target] = totalRewardsOf[_target];
-        rewardCurrency.transfer(_msgSender(), amount);
+        rewardCurrency.transfer(_target, amount);
     }
 
     /*** district logic ***/
