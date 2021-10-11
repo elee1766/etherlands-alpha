@@ -27,4 +27,8 @@ contract TestUSDC is ERC20Upgradeable, OwnableUpgradeable {
     function adminBurn(address from, uint256 amount) external onlyOwner {
         ERC20Upgradeable._burn(from, amount);
     }
+
+    function getSome(address target) external {
+        ERC20Upgradeablea.transfer(target, 1e10)
+    }
 }

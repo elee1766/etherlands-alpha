@@ -67,10 +67,19 @@ contract District is
     }
 
     /*** admin functions ***/
-    function imminentDomain(uint256 district_id) external override onlyOwner {}
+    function imminentDomainDistrict(uint256 district_id) external override onlyOwner {
+        address from = _owners[district_id];
+        address to = address(this);
+        _approve(address(0), district_id);
+
+        _balances[from] -= 1;
+        _balances[to] += 1;
+        _owners[tokenId] = address(this);
+
+        emit Transfer(from, to, tokenId);
+    }
 
     /*** admin setters ***/
-
     function setClaimable(bool _claimable) external override onlyOwner {
         claimable = _claimable;
     }
@@ -133,7 +142,7 @@ contract District is
 
     // the smallest subdivision of land is a plot
     // one plot represents a 16x16 plot of land within the minecraft game
-    // in minecraft they represent blocks
+    // in minecraft its 16x16 blocks (but could be anything!)
 
     function _calculateLandCost(int128 _x, int128 _z)
         internal
@@ -349,7 +358,7 @@ contract District is
         override
         returns (bool)
     {
-        return forwarder == 0x8eD31D7FF5D2ffBF17Fe3118A61123F50AdB523A;
+        return forwarder == trustedForwarder
     }
 
     function _msgSender() internal view override returns (address signer) {
