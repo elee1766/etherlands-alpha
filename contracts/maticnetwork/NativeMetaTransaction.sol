@@ -5,11 +5,12 @@ pragma solidity ^0.8.0;
 import "./EIP712Base.sol";
 
 contract NativeMetaTransaction is EIP712Base {
-    bytes32 private constant META_TRANSACTION_TYPEHASH = keccak256(
-        bytes(
-            "MetaTransaction(uint256 nonce,address from,bytes functionSignature)"
-        )
-    );
+    bytes32 private constant META_TRANSACTION_TYPEHASH =
+        keccak256(
+            bytes(
+                "MetaTransaction(uint256 nonce,address from,bytes functionSignature)"
+            )
+        );
     event MetaTransactionExecuted(
         address userAddress,
         address relayerAddress,

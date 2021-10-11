@@ -93,5 +93,6 @@ abstract contract PausableUpgradeable is Initializable, ContextUpgradeable {
         _paused = false;
         emit Unpaused(_msgSender());
     }
+
     uint256[49] private __gap;
 }

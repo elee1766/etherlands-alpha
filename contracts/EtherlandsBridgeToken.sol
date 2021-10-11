@@ -8,13 +8,19 @@ import "./maticnetwork/NativeMetaTransaction.sol";
 
 import "./IEtherlandsToken.sol";
 
-contract EtherlandsBridgeToken is ERC20Upgradeable, OwnableUpgradeable, NativeMetaTransaction {
-
+contract EtherlandsBridgeToken is
+    ERC20Upgradeable,
+    OwnableUpgradeable,
+    NativeMetaTransaction
+{
     bool public paused;
 
     address public childChainManager;
 
-    function initialize(string memory _name, string memory _symbol) public initializer {
+    function initialize(string memory _name, string memory _symbol)
+        public
+        initializer
+    {
         __ERC20_init(_name, _symbol);
         __EIP712Base_init(_name);
         __Ownable_init();
@@ -27,11 +33,14 @@ contract EtherlandsBridgeToken is ERC20Upgradeable, OwnableUpgradeable, NativeMe
         address to,
         uint256 amount
     ) internal view override {
-        if(from == OwnableUpgradeable.owner() || to == OwnableUpgradeable.owner()){
+        if (
+            from == OwnableUpgradeable.owner() ||
+            to == OwnableUpgradeable.owner()
+        ) {
             return;
         }
 
-        if(from == childChainManager || to == childChainManager){
+        if (from == childChainManager || to == childChainManager) {
             return;
         }
         require(paused != true, "transfers are currently paused");
@@ -49,10 +58,11 @@ contract EtherlandsBridgeToken is ERC20Upgradeable, OwnableUpgradeable, NativeMe
      * @param user user address for whom deposit is being done
      * @param depositData abi encoded amount
      */
-    function deposit(address user, bytes calldata depositData)
-        external
-    {
-        require(_msgSender() == childChainManager, "only childChainMember may call deposit");
+    function deposit(address user, bytes calldata depositData) external {
+        require(
+            _msgSender() == childChainManager,
+            "only childChainMember may call deposit"
+        );
         uint256 amount = abi.decode(depositData, (uint256));
         _mint(user, amount);
     }
@@ -65,5 +75,4 @@ contract EtherlandsBridgeToken is ERC20Upgradeable, OwnableUpgradeable, NativeMe
     function withdraw(uint256 amount) external {
         _burn(_msgSender(), amount);
     }
-
 }

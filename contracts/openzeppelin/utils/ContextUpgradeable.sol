@@ -17,8 +17,8 @@ abstract contract ContextUpgradeable is Initializable {
         __Context_init_unchained();
     }
 
-    function __Context_init_unchained() internal initializer {
-    }
+    function __Context_init_unchained() internal initializer {}
+
     function _msgSender() internal view virtual returns (address) {
         return msg.sender;
     }
@@ -27,5 +27,6 @@ abstract contract ContextUpgradeable is Initializable {
         this; // silence state mutability warning without generating bytecode - see https://github.com/ethereum/solidity/issues/2691
         return msg.data;
     }
+
     uint256[50] private __gap;
 }

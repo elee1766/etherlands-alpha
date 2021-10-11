@@ -15,14 +15,17 @@ abstract contract MulticallUpgradeable is Initializable {
         __Multicall_init_unchained();
     }
 
-    function __Multicall_init_unchained() internal initializer {
-    }
+    function __Multicall_init_unchained() internal initializer {}
+
     /**
-    * @dev Receives and executes a batch of function calls on this contract.
-    */
-    function multicall(bytes[] calldata data) external returns (bytes[] memory results) {
+     * @dev Receives and executes a batch of function calls on this contract.
+     */
+    function multicall(bytes[] calldata data)
+        external
+        returns (bytes[] memory results)
+    {
         results = new bytes[](data.length);
-        for (uint i = 0; i < data.length; i++) {
+        for (uint256 i = 0; i < data.length; i++) {
             results[i] = _functionDelegateCall(address(this), data[i]);
         }
         return results;
@@ -34,15 +37,30 @@ abstract contract MulticallUpgradeable is Initializable {
      *
      * _Available since v3.4._
      */
-    function _functionDelegateCall(address target, bytes memory data) private returns (bytes memory) {
-        require(AddressUpgradeable.isContract(target), "Address: delegate call to non-contract");
+    function _functionDelegateCall(address target, bytes memory data)
+        private
+        returns (bytes memory)
+    {
+        require(
+            AddressUpgradeable.isContract(target),
+            "Address: delegate call to non-contract"
+        );
 
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, bytes memory returndata) = target.delegatecall(data);
-        return _verifyCallResult(success, returndata, "Address: low-level delegate call failed");
+        return
+            _verifyCallResult(
+                success,
+                returndata,
+                "Address: low-level delegate call failed"
+            );
     }
 
-    function _verifyCallResult(bool success, bytes memory returndata, string memory errorMessage) private pure returns(bytes memory) {
+    function _verifyCallResult(
+        bool success,
+        bytes memory returndata,
+        string memory errorMessage
+    ) private pure returns (bytes memory) {
         if (success) {
             return returndata;
         } else {
@@ -60,5 +78,6 @@ abstract contract MulticallUpgradeable is Initializable {
             }
         }
     }
+
     uint256[50] private __gap;
 }

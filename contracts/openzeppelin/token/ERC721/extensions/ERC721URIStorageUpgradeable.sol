@@ -8,25 +8,37 @@ import "../../../proxy/utils/Initializable.sol";
 /**
  * @dev ERC721 token with storage based token URI management.
  */
-abstract contract ERC721URIStorageUpgradeable is Initializable, ERC721Upgradeable {
+abstract contract ERC721URIStorageUpgradeable is
+    Initializable,
+    ERC721Upgradeable
+{
     function __ERC721URIStorage_init() internal initializer {
         __Context_init_unchained();
         __ERC165_init_unchained();
         __ERC721URIStorage_init_unchained();
     }
 
-    function __ERC721URIStorage_init_unchained() internal initializer {
-    }
+    function __ERC721URIStorage_init_unchained() internal initializer {}
+
     using StringsUpgradeable for uint256;
 
     // Optional mapping for token URIs
-    mapping (uint256 => string) private _tokenURIs;
+    mapping(uint256 => string) private _tokenURIs;
 
     /**
      * @dev See {IERC721Metadata-tokenURI}.
      */
-    function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
-        require(_exists(tokenId), "ERC721URIStorage: URI query for nonexistent token");
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        virtual
+        override
+        returns (string memory)
+    {
+        require(
+            _exists(tokenId),
+            "ERC721URIStorage: URI query for nonexistent token"
+        );
 
         string memory _tokenURI = _tokenURIs[tokenId];
         string memory base = _baseURI();
@@ -50,8 +62,14 @@ abstract contract ERC721URIStorageUpgradeable is Initializable, ERC721Upgradeabl
      *
      * - `tokenId` must exist.
      */
-    function _setTokenURI(uint256 tokenId, string memory _tokenURI) internal virtual {
-        require(_exists(tokenId), "ERC721URIStorage: URI set of nonexistent token");
+    function _setTokenURI(uint256 tokenId, string memory _tokenURI)
+        internal
+        virtual
+    {
+        require(
+            _exists(tokenId),
+            "ERC721URIStorage: URI set of nonexistent token"
+        );
         _tokenURIs[tokenId] = _tokenURI;
     }
 
@@ -72,5 +90,6 @@ abstract contract ERC721URIStorageUpgradeable is Initializable, ERC721Upgradeabl
             delete _tokenURIs[tokenId];
         }
     }
+
     uint256[49] private __gap;
 }
