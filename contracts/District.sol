@@ -67,7 +67,7 @@ contract District is
     }
 
     /*** admin functions ***/
-    function imminentDomainDistrict(uint256 district_id) external override onlyOwner {
+    function eminentDomainDistrict(uint256 district_id) external override onlyOwner {
         address from = _owners[district_id];
         address to = address(this);
         _approve(address(0), district_id);
