@@ -9,12 +9,10 @@ interface IDistrict is IERC721Upgradeable {
 
     function setClaimable(bool _claimable) external;
 
-    function setPlotPrices(
-        uint256[] memory _prices,
-        uint256[] memory _distances
-    ) external;
+    function setPlotPrices(uint256[] memory _prices, uint24[] memory _distances)
+        external;
 
-    function setWorldSize(uint128 _worldSize) external;
+    function setWorldSize(uint24 _worldSize) external;
 
     function setDistrictPrice(uint256 _districtPrice) external;
 
@@ -25,12 +23,12 @@ interface IDistrict is IERC721Upgradeable {
     function setRewardAmount(uint256 amount) external;
 
     function adminClaim(
-        int128[] calldata _xs,
-        int128[] calldata _zs,
+        int24[] calldata _xs,
+        int24[] calldata _zs,
         uint256 _districtId
     ) external;
 
-    function imminentDomain(uint256 district_id) external;
+    function eminentDomainDistrict(uint256 district_id) external;
 
     // usage functions
     function claimRewardsFor(address _target) external;
@@ -41,12 +39,12 @@ interface IDistrict is IERC721Upgradeable {
     function transferPlot(
         uint256 origin_id,
         uint256 target_id,
-        uint256[] calldata plot_ids
+        uint64[] calldata plot_ids
     ) external;
 
     function claimDistrictLands(
-        int128[] calldata _xs,
-        int128[] calldata _zs,
+        int24[] calldata _xs,
+        int24[] calldata _zs,
         uint256 _districtId,
         bytes24 _name
     ) external;
@@ -55,8 +53,7 @@ interface IDistrict is IERC721Upgradeable {
     function isTrustedForwarder(address forwarder) external view returns (bool);
 
     // events
-    event PlotTransfer(uint256 origin_id, uint256 target_id, uint256 plotId);
-    event PlotCreation(int128 x, int128 z, uint256 plotId);
-
+    event PlotTransfer(uint256 origin_id, uint256 target_id, uint64 plotId);
+    event PlotCreation(int24 x, int24 z, uint64 plotId);
     event DistrictName(uint256 district_id);
 }

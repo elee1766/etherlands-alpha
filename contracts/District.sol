@@ -20,16 +20,16 @@ contract District is
     // the price is the last plotPrice index which corresponds with the plotPriceDistances in which the
     // number remains smaller.
 
-    uint256[] public plotPrices; // array of prices, in gwei, which correspond to the below
-    uint256[] public plotPriceDistances; // array of distances [x1,x2..] which correspond to the above
+    uint256[] public plotPrices; // array of prices, in wei, which correspond to the below
+    uint24[] public plotPriceDistances; // array of distances [x1,x2..] which correspond to the above
 
     uint256 public districtPrice; // price to mint a district without any deeds
 
-    uint256 public totalPlots; // total number of minted plots
+    uint64 public totalPlots; // total number of minted plots
     uint256 public totalSupply; // total currently minted districts
 
     bool public claimable; // whether or not it is possible to mint an district or claim deeds
-    uint128 public worldSize; // maximum value of any plot coordinate
+    uint24 public worldSize; // maximum value of any plot coordinate
 
     IERC20 public underlyingCurrency; // currency to accept for payment
     // reward token along with
@@ -39,10 +39,10 @@ contract District is
 
     /*** mappings ***/
     // holds plot information
-    mapping(uint256 => int128) public plot_x; // mapping from plotId to x plot coordinate;
-    mapping(uint256 => int128) public plot_z; // mapping from plotId to z plot coordinate;
-    mapping(uint256 => uint256) public plotDistrictOf; // mapping from plotId to the district it is a part of
-    mapping(int128 => mapping(int128 => uint256)) public plotIdOf; // mapping from x to z to plotId
+    mapping(uint64 => int24) public plot_x; // mapping from plotId to x plot coordinate;
+    mapping(uint64 => int24) public plot_z; // mapping from plotId to z plot coordinate;
+    mapping(uint64 => uint256) public plotDistrictOf; // mapping from plotId to the district it is a part of
+    mapping(int24 => mapping(int24 => uint64)) public plotIdOf; // mapping from x to z to plotId
 
     // holds pending and claimed reward information
     mapping(address => uint256) public totalRewardsOf;
@@ -67,16 +67,16 @@ contract District is
     }
 
     /*** admin functions ***/
-    function eminentDomainDistrict(uint256 district_id) external override onlyOwner {
-        address from = _owners[district_id];
+
+    function eminentDomainDistrict(uint256 district_id)
+        external
+        override
+        onlyOwner
+    {
+        address from = ERC721Upgradeable.ownerOf(district_id);
         address to = address(this);
         _approve(address(0), district_id);
-
-        _balances[from] -= 1;
-        _balances[to] += 1;
-        _owners[tokenId] = address(this);
-
-        emit Transfer(from, to, tokenId);
+        _transfer(from, to, district_id);
     }
 
     /*** admin setters ***/
@@ -84,10 +84,11 @@ contract District is
         claimable = _claimable;
     }
 
-    function setPlotPrices(
-        uint256[] memory _prices,
-        uint256[] memory _distances
-    ) external override onlyOwner {
+    function setPlotPrices(uint256[] memory _prices, uint24[] memory _distances)
+        external
+        override
+        onlyOwner
+    {
         require(
             _prices.length == _distances.length,
             "District: Length doesn't match"
@@ -96,7 +97,7 @@ contract District is
         plotPriceDistances = _distances;
     }
 
-    function setWorldSize(uint128 _worldSize) external override onlyOwner {
+    function setWorldSize(uint24 _worldSize) external override onlyOwner {
         require(_worldSize > 0, "District: World limit must be > 0");
         worldSize = _worldSize;
     }
@@ -133,7 +134,7 @@ contract District is
         trustedForwarder = _address;
     }
 
-    function setCounts(uint256 plots, uint256 districts) external onlyOwner {
+    function setCounts(uint24 plots, uint256 districts) external onlyOwner {
         totalPlots = plots;
         totalSupply = districts;
     }
@@ -144,14 +145,14 @@ contract District is
     // one plot represents a 16x16 plot of land within the minecraft game
     // in minecraft its 16x16 blocks (but could be anything!)
 
-    function _calculateLandCost(int128 _x, int128 _z)
+    function _calculateLandCost(int24 _x, int24 _z)
         internal
         view
         returns (uint256)
     {
-        uint128 xA = uint128(_x >= 0 ? _x : -_x);
-        uint128 zA = uint128(_z >= 0 ? _z : -_z);
-        uint128 min = (xA < zA ? xA : zA);
+        uint24 xA = uint24(_x >= 0 ? _x : -_x);
+        uint24 zA = uint24(_z >= 0 ? _z : -_z);
+        uint24 min = (xA < zA ? xA : zA);
 
         uint256 price = 0;
         for (uint256 i = 0; i < plotPrices.length; i++) {
@@ -166,13 +167,13 @@ contract District is
     function transferPlot(
         uint256 origin_id,
         uint256 target_id,
-        uint256[] calldata plot_ids
+        uint64[] calldata plot_ids
     ) external override {
         require(
             _isApprovedOrOwner(_msgSender(), origin_id),
             "District: transfer caller is not owner nor approved"
         );
-        for (uint256 i = 0; i < plot_ids.length; i++) {
+        for (uint64 i = 0; i < plot_ids.length; i++) {
             _transferPlot(origin_id, target_id, plot_ids[i]);
         }
     }
@@ -221,7 +222,7 @@ contract District is
     function _transferPlot(
         uint256 origin_id,
         uint256 target_id,
-        uint256 plot_id
+        uint64 plot_id
     ) internal {
         require(
             plotDistrictOf[plot_id] == origin_id,
@@ -241,8 +242,8 @@ contract District is
     /*** district logic ***/
     // an district is the actual ERC721. it is a collection of plotIds
     function claimDistrictLands(
-        int128[] calldata _xs,
-        int128[] calldata _zs,
+        int24[] calldata _xs,
+        int24[] calldata _zs,
         uint256 _districtId,
         bytes24 _nickname
     ) external override {
@@ -295,37 +296,41 @@ contract District is
     // we claim deeds by adding them to an existing estate.
     function _claimPlot(
         uint256 _districtId,
-        int128 _x,
-        int128 _z
+        int24 _x,
+        int24 _z
     ) internal returns (uint256 tokenId) {
         require(
             plotIdOf[_x][_z] == 0,
             "attempting to claim already minted land"
         );
 
-        uint128 xA = uint128(_x >= 0 ? _x : -_x);
-        uint128 zA = uint128(_z >= 0 ? _z : -_z);
+        uint24 xA = uint24(_x >= 0 ? _x : -_x);
+        uint24 zA = uint24(_z >= 0 ? _z : -_z);
+
         require(
             (worldSize > xA) && (worldSize > zA),
             "the claim is beyond the specified world size"
         );
         require((xA > 2) && (zA > 2), "the claim is too close to the axis");
+
         // the first plot has id = 1;
         totalPlots = totalPlots + 1;
         plot_x[totalPlots] = _x;
         plot_z[totalPlots] = _z;
         plotIdOf[_x][_z] = totalPlots;
+
         // a transfer from 0 indicates a mint;
         _transferPlot(0, _districtId, totalPlots);
         emit PlotCreation(_x, _z, totalPlots);
+
         return totalPlots;
     }
 
     /*** admin functions ***/
     // the owner of the contract may claim any unclaimed plot and assign it to any district id
     function adminClaim(
-        int128[] calldata _xs,
-        int128[] calldata _zs,
+        int24[] calldata _xs,
+        int24[] calldata _zs,
         uint256 _districtId
     ) external override onlyOwner {
         require(
@@ -358,7 +363,7 @@ contract District is
         override
         returns (bool)
     {
-        return forwarder == trustedForwarder
+        return forwarder == trustedForwarder;
     }
 
     function _msgSender() internal view override returns (address signer) {

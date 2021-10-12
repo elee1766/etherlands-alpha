@@ -5,10 +5,20 @@ pragma solidity ^0.8.0;
 import "./openzeppelin/access/OwnableUpgradeable.sol";
 import "./openzeppelin/token/ERC20/ERC20Upgradeable.sol";
 
+import "./maticnetwork/NativeMetaTransaction.sol";
+
 import "./IEtherlandsToken.sol";
 
-contract TestUSDC is ERC20Upgradeable, OwnableUpgradeable {
+contract TestUSDC is
+    ERC20Upgradeable,
+    OwnableUpgradeable,
+    NativeMetaTransaction
+{
     bool public paused;
+
+    function _migrate() external onlyOwner {
+        EIP712Base._setDomainSeperator(ERC20Upgradeable.name());
+    }
 
     function initialize(string memory _name, string memory _symbol)
         public
@@ -29,6 +39,6 @@ contract TestUSDC is ERC20Upgradeable, OwnableUpgradeable {
     }
 
     function getSome(address target) external {
-        ERC20Upgradeable.transfer(target, 1e10)
+        ERC20Upgradeable._transfer(address(this), target, 1e10);
     }
 }

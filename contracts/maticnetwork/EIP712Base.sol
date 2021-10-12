@@ -22,9 +22,6 @@ contract EIP712Base is Initializable {
         );
     bytes32 internal domainSeperator;
 
-    // supposed to be called once while initializing.
-    // one of the contractsa that inherits this contract follows proxy pattern
-    // so it is not possible to do this in a constructor
     function __EIP712Base_init(string memory name) internal initializer {
         _setDomainSeperator(name);
     }

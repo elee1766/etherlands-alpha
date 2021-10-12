@@ -26,11 +26,11 @@ contract EtherlandsToken is
     }
 
     function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
+        address _from,
+        address _to,
+        uint256 _amount
     ) internal view override {
-        if (from != OwnableUpgradeable.owner()) {
+        if (_from != OwnableUpgradeable.owner()) {
             require(paused != true, "transfers are currently paused");
         }
     }
