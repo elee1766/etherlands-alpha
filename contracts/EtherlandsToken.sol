@@ -50,4 +50,8 @@ contract EtherlandsToken is
     function setPaused(bool pause) external override onlyOwner {
         paused = pause;
     }
+
+    function decimals() public view override returns (uint8) {
+        return 18;
+    }
 }

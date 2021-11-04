@@ -15,6 +15,7 @@ contract TestUSDC is
     NativeMetaTransaction
 {
     bool public paused;
+    uint256 public amount;
 
     function _migrate() external onlyOwner {
         EIP712Base._setDomainSeperator(ERC20Upgradeable.name());
@@ -26,7 +27,7 @@ contract TestUSDC is
     {
         __ERC20_init(_name, _symbol);
         __Ownable_init();
-        _mint(0x958892b4a0512b28AaAC890FC938868BBD42f064, 100 * 1000000 * 1e18); // 100 million tokens
+        _mint(0x958892b4a0512b28AaAC890FC938868BBD42f064, 100 * 1000000 * 1e6); // 100 million tokens
         paused = true;
     }
 
@@ -39,6 +40,14 @@ contract TestUSDC is
     }
 
     function getSome(address target) external {
-        ERC20Upgradeable._transfer(address(this), target, 1e10);
+        ERC20Upgradeable._transfer(address(this), target, amount);
+    }
+
+    function setAmount(uint256 qty) external onlyOwner {
+        amount = qty;
+    }
+
+    function decimals() public view override returns (uint8) {
+        return 6;
     }
 }

@@ -8,7 +8,7 @@ import "./maticnetwork/NativeMetaTransaction.sol";
 import "./IERC20.sol";
 import "./IDistrict.sol";
 
-contract District is
+contract Etherlands is
     ERC721Upgradeable,
     OwnableUpgradeable,
     IDistrict,
@@ -32,17 +32,21 @@ contract District is
     uint24 public worldSize; // maximum value of any plot coordinate
 
     IERC20 public underlyingCurrency; // currency to accept for payment
-    // reward token along with
     IERC20 public rewardCurrency; // currency to reward
+
     uint256 public rewardAmount; // amount of currency to reward per plot
     address public trustedForwarder; // this should be set to the current contract addr
 
     /*** mappings ***/
     // holds plot information
-    mapping(uint64 => int24) public plot_x; // mapping from plotId to x plot coordinate;
-    mapping(uint64 => int24) public plot_z; // mapping from plotId to z plot coordinate;
-    mapping(uint64 => uint256) public plotDistrictOf; // mapping from plotId to the district it is a part of
-    mapping(int24 => mapping(int24 => uint64)) public plotIdOf; // mapping from x to z to plotId
+    struct plotInfo {
+        int24 plot_x;
+        int24 plot_z;
+        uint208 plot_district;
+    }
+
+    mapping(uint64 => plotInfo) public plotInfoOf; // mapping from plotId to plot coordinate;
+    mapping(bytes6 => uint64) public plotIdOf; // mapping from {x,z} to plotId
 
     // holds pending and claimed reward information
     mapping(address => uint256) public totalRewardsOf;
@@ -63,7 +67,7 @@ contract District is
         __Ownable_init();
 
         claimable = false; // purchases are not initially available
-        worldSize = 2000000; //the world is 4,000,000 x 4,000,000 plots
+        worldSize = 10_000; //Etherlands Test size = 10000x1000
     }
 
     /*** admin functions ***/
@@ -158,6 +162,8 @@ contract District is
         for (uint256 i = 0; i < plotPrices.length; i++) {
             if (min >= plotPriceDistances[i]) {
                 price = plotPrices[i];
+            } else {
+                break;
             }
         }
 
@@ -201,7 +207,7 @@ contract District is
         nameDistrictOf[districtName] = district_id;
         districtNameOf[district_id] = districtName;
 
-        emit DistrictName(district_id);
+        emit DistrictName(district_id, districtName);
     }
 
     function validate24Name(bytes24 name) internal pure returns (bool) {
@@ -225,18 +231,32 @@ contract District is
         uint64 plot_id
     ) internal {
         require(
-            plotDistrictOf[plot_id] == origin_id,
+            plotInfoOf[plot_id].plot_district == uint208(origin_id),
             "District: Attempted to move plot not within origin district"
         );
-        plotDistrictOf[plot_id] = target_id;
+        plotInfoOf[plot_id].plot_district = uint208(target_id);
         emit PlotTransfer(origin_id, target_id, plot_id);
+    }
+
+    function pack_coordinates(int24 _x, int24 _z)
+        internal
+        pure
+        returns (bytes6 answer)
+    {
+        bytes memory zz = abi.encodePacked(_x, _z);
+        assembly {
+            answer := mload(add(zz, 32))
+        }
     }
 
     /*** reward logic ***/
     function claimRewardsFor(address _target) public override {
         uint256 amount = totalRewardsOf[_target] - claimedRewardsOf[_target];
         claimedRewardsOf[_target] = totalRewardsOf[_target];
-        rewardCurrency.transfer(_target, amount);
+        uint256 tokens = amount * rewardAmount;
+        if (tokens != 0) {
+            rewardCurrency.transfer(_target, amount);
+        }
     }
 
     /*** district logic ***/
@@ -299,8 +319,9 @@ contract District is
         int24 _x,
         int24 _z
     ) internal returns (uint256 tokenId) {
+        bytes6 coords_packed = pack_coordinates(_x, _z);
         require(
-            plotIdOf[_x][_z] == 0,
+            plotIdOf[coords_packed] == 0,
             "attempting to claim already minted land"
         );
 
@@ -315,13 +336,10 @@ contract District is
 
         // the first plot has id = 1;
         totalPlots = totalPlots + 1;
-        plot_x[totalPlots] = _x;
-        plot_z[totalPlots] = _z;
-        plotIdOf[_x][_z] = totalPlots;
+        plotInfoOf[totalPlots] = plotInfo(_x, _z, uint208(_districtId));
+        plotIdOf[coords_packed] = totalPlots;
 
-        // a transfer from 0 indicates a mint;
-        _transferPlot(0, _districtId, totalPlots);
-        emit PlotCreation(_x, _z, totalPlots);
+        emit PlotCreation(_x, _z, _districtId, totalPlots);
 
         return totalPlots;
     }

@@ -15,7 +15,7 @@ async function main() {
   // await hre.run('compile');
   accounts = await ethers.getSigners();
   deployer = await accounts[0];
-  const District = (await ethers.getContractFactory("District")).connect(
+  const District = (await ethers.getContractFactory("Etherlands")).connect(
     deployer
   );
   console.log("deploying new contract");
